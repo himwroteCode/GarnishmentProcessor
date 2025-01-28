@@ -45,7 +45,7 @@ def process_excel(file):
         'SpouseAge ': 'spouse_age',
         'IsSpouseBlind': 'is_spouse_blind',
         'Amount': 'amount',
-        'ArrearsGreaterThan12Weeks?': 'arrears_greater_than_12_weeks',
+        'ArrearsGreaterThan12Weeks': 'arrears_greater_than_12_weeks',
         "CaseID": 'case_id',
         'TotalExemptions': 'no_of_exception_for_self',
         'WorkState': 'Work State',
