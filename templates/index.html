@@ -1,0 +1,171 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garnishment Processor</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .json-display {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .btn {
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Garnishment Processor</h1>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="file" accept=".xls,.xlsx" required>
+            <button type="submit" class="btn">Convert</button>
+        </form>
+        <div id="jsonResult" class="json-display" style="display: none;"></div>
+        <a id="downloadButton" href="/download" class="btn" style="display: none;">Download JSON</a>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('#uploadForm').on('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                $('#jsonResult').hide();
+                $('#downloadButton').hide();
+
+                $.ajax({
+                    url: '/convert',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        $('#jsonResult').text(JSON.stringify(response, null, 2)).show();
+                        $('#downloadButton').show();
+                    },
+                    error: function (error) {
+                        alert('An error occurred while processing the file.');
+                        console.error(error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garnishment Processor</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .json-display {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .btn {
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Garnishment Processor</h1>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="file" accept=".xls,.xlsx" required>
+            <button type="submit" class="btn">Convert</button>
+        </form>
+        <div id="jsonResult" class="json-display" style="display: none;"></div>
+        <a id="downloadButton" href="" class="btn" style="display: none;" download>Download JSON</a>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('#uploadForm').on('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                $('#jsonResult').hide();
+                $('#downloadButton').hide();
+
+                $.ajax({
+                    url: '/convert',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        // Show the JSON content in the preview area
+                        $('#jsonResult').text(JSON.stringify(response.json_content, null, 2)).show();
+
+                        // Show the download button
+                        $('#downloadButton').attr('href', response.download_url).show();
+                    },
+                    error: function (error) {
+                        alert('An error occurred while processing the file.');
+                        console.error(error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
