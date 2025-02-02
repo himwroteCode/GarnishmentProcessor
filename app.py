@@ -1,9 +1,14 @@
 from flask import Flask, request, jsonify, render_template, send_file, url_for
 import pandas as pd
-import io
 import json
 import os
 import tempfile
+from io import BytesIO
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
+
+
+
 app = Flask(__name__)
 
 # Function to process the Excel file and convert it to JSON
@@ -45,7 +50,7 @@ def process_excel(file):
         'SpouseAge ': 'spouse_age',
         'IsSpouseBlind': 'is_spouse_blind',
         'Amount': 'amount',
-        'ArrearsGreaterThan12Weeks?': 'arrears_greater_than_12_weeks',
+        'ArrearsGreaterThan12Weeks': 'arrears_greater_than_12_weeks',
         "CaseID": 'case_id',
         'TotalExemptions': 'no_of_exception_for_self',
         'WorkState': 'Work State',
@@ -122,31 +127,46 @@ def process_excel(file):
     output_json["batch_id"] = batch_id
     return output_json
 
+
+
+# Function to convert JSON to Excel
+def convert_json_to_excel(json_data):
+   # Flatten the JSON data
+    rows = []
+    for result in json_data['results']:
+        cid = result['cid']
+        for employee in result['employees']:
+            ee_id = employee['ee_id']
+            for garnishment in employee['garnishment']:
+                row = {
+                    'cid': cid,
+                    'ee_id': ee_id,
+                    'case_id': garnishment['case_id'],
+                    'garnishment_type': garnishment['garnishment_type']
+                }
+                if 'student_loan_withhold_amt' in garnishment:
+                    row['student_loan_withhold_amt'] = garnishment['student_loan_withhold_amt']
+                if 'child_support_withhold_amt' in garnishment:
+                    row['child_support_withhold_amt'] = garnishment['child_support_withhold_amt']
+                if 'arrear_amount' in garnishment:
+                    row['arrear_amount'] = garnishment['arrear_amount']
+                if 'federal_tax_withhold_amt' in garnishment:
+                    row['federal_tax_withhold_amt'] = garnishment['federal_tax_withhold_amt']
+                rows.append(row)
+    # Convert the rows to a DataFrame
+    df = pd.DataFrame(rows)
+    
+    # Create a BytesIO object to hold the Excel file in memory
+    output = BytesIO()
+    df.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)  # Rewind to the beginning of the file
+
+    return output
+
+
 @app.route('/')
 def home():
     return render_template('index.html')
-
-# @app.route('/convert', methods=['POST'])
-# def convert():
-#     if 'file' not in request.files:
-#         return "No file uploaded", 400
-
-#     file = request.files['file']
-
-#     if file.filename == '':
-#         return "No selected file", 400
-
-#     # Process the Excel file in memory
-#     output_json = process_excel(file)
-
-#     # Convert JSON to a downloadable file
-#     json_file = io.BytesIO()
-#     # Use json.dumps to serialize output_json to a string, then encode it as bytes before writing to json_file
-#     json_file.write(json.dumps(output_json, indent=2).encode('utf-8'))
-#     json_file.seek(0)
-
-#     return send_file(json_file, as_attachment=True, download_name="output.json", mimetype='application/json')
-
 
 
 @app.route('/convert', methods=['POST'])
@@ -173,11 +193,70 @@ def convert():
     # Return the download URL as part of the response
     return jsonify({'json_content': output_json, 'download_url': download_url})
 
-@app.route('/download/<filename>')
+
+@app.route('/download_json/<filename>')
 def download_json(filename):
     # The file path will be relative to the temporary directory
     file_path = os.path.join(tempfile.gettempdir(), filename)
     return send_file(file_path, as_attachment=True, download_name=filename, mimetype='application/json')
+
+
+@app.route('/convert_json_to_excel', methods=['POST'])
+def convert_json_to_excel_route():
+    if 'jsonFile' not in request.files:
+        return "No file uploaded", 400
+
+    file = request.files['jsonFile']
+    
+    if file.filename == '':
+        return "No selected file", 400
+
+    # Read the uploaded JSON file
+    json_data = json.load(file)
+
+    # Convert JSON to Excel
+    excel_file = convert_json_to_excel(json_data)
+
+    # Create a temporary file to store the Excel output
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+    with open(temp_file.name, 'wb') as f:
+        f.write(excel_file.getvalue())
+
+    # Generate the download URL (Flask will automatically serve static files)
+    download_url = url_for('download_excel', filename=os.path.basename(temp_file.name), _external=True)
+
+
+    # Flatten the JSON data
+    rows = []
+    for result in json_data['results']:
+        cid = result['cid']
+        for employee in result['employees']:
+            ee_id = employee['ee_id']
+            for garnishment in employee['garnishment']:
+                row = {
+                    'cid': cid,
+                    'ee_id': ee_id,
+                    'case_id': garnishment['case_id'],
+                    'garnishment_type': garnishment['garnishment_type']
+                }
+                if 'student_loan_withhold_amt' in garnishment:
+                    row['student_loan_withhold_amt'] = garnishment['student_loan_withhold_amt']
+                if 'child_support_withhold_amt' in garnishment:
+                    row['child_support_withhold_amt'] = garnishment['child_support_withhold_amt']
+                if 'arrear_amount' in garnishment:
+                    row['arrear_amount'] = garnishment['arrear_amount']
+                if 'federal_tax_withhold_amt' in garnishment:
+                    row['federal_tax_withhold_amt'] = garnishment['federal_tax_withhold_amt']
+                rows.append(row)
+    
+    # Return the table data and download URL as part of the response
+    return jsonify({'table_data': rows, 'download_url': download_url})
+
+
+@app.route('/download_excel/<filename>')
+def download_excel(filename):
+    file_path = os.path.join(tempfile.gettempdir(), filename)
+    return send_file(file_path, as_attachment=True, download_name=filename)
 
 
 

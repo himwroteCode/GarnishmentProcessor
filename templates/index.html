@@ -1,88 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garnishment Processor</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-        }
-        h1 {
-            text-align: center;
-        }
-        .json-display {
-            margin-top: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            background: #f9f9f9;
-            white-space: pre-wrap;
-        }
-        .btn {
-            margin-top: 10px;
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Garnishment Processor</h1>
-        <form id="uploadForm">
-            <input type="file" id="fileInput" name="file" accept=".xls,.xlsx" required>
-            <button type="submit" class="btn">Convert</button>
-        </form>
-        <div id="jsonResult" class="json-display" style="display: none;"></div>
-        <a id="downloadButton" href="/download" class="btn" style="display: none;">Download JSON</a>
-    </div>
-
-    <script>
-        $(document).ready(function () {
-            $('#uploadForm').on('submit', function (e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-                $('#jsonResult').hide();
-                $('#downloadButton').hide();
-
-                $.ajax({
-                    url: '/convert',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (response) {
-                        $('#jsonResult').text(JSON.stringify(response, null, 2)).show();
-                        $('#downloadButton').show();
-                    },
-                    error: function (error) {
-                        alert('An error occurred while processing the file.');
-                        console.error(error);
-                    }
-                });
-            });
-        });
-    </script>
-</body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garnishment Processor</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
         .container {
-            max-width: 600px;
+            max-width: 900px;
             margin: auto;
         }
         h1 {
@@ -125,39 +41,132 @@
         .btn:hover {
             background-color: #0056b3;
         }
+        /* Scrollable container for preview table */
+        #previewTableWrapper {
+            margin-top: 20px;
+            max-height: 400px; /* Limit the height for scrolling */
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+
+        #previewTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #previewTable th, #previewTable td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #previewTable th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Garnishment Processor</h1>
+
+        <!-- Convert Excel to JSON Form -->
         <form id="uploadForm">
             <input type="file" id="fileInput" name="file" accept=".xls,.xlsx" required>
-            <button type="submit" class="btn">Convert</button>
+            <button type="submit" class="btn">Convert Excel to JSON</button>
         </form>
+
+        <!-- Convert JSON to Excel Form -->
+        <form id="jsonForm">
+            <input type="file" id="jsonInput" name="jsonFile" accept=".json" required>
+            <button type="submit" class="btn">Convert JSON to Excel</button>
+        </form>
+
         <div id="jsonResult" class="json-display" style="display: none;"></div>
         <a id="downloadButton" href="" class="btn" style="display: none;" download>Download JSON</a>
+        <a id="downloadExcelButton" href="" class="btn" style="display: none;" download>Download Excel</a>
+
+        <!-- Scrollable Table for Preview -->
+        <div id="previewTableWrapper" style="display: none;">
+            <table id="previewTable">
+                <thead>
+                    <tr>
+                        <th>CID</th>
+                        <th>EE ID</th>
+                        <th>Case ID</th>
+                        <th>Garnishment Type</th>
+                        <th>Student Loan Amount</th>
+                        <th>Child Support Amount</th>
+                        <th>Arrear Amount</th>
+                        <th>Federal Tax Amount</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <script>
         $(document).ready(function () {
+            // Handle Excel to JSON conversion
             $('#uploadForm').on('submit', function (e) {
                 e.preventDefault();
                 const formData = new FormData(this);
                 $('#jsonResult').hide();
                 $('#downloadButton').hide();
+                $('#downloadExcelButton').hide();
+                $('#previewTableWrapper').hide();
 
                 $.ajax({
-                    url: '/convert',
+                    url: '/convert',  // Change this to your actual conversion endpoint for Excel to JSON
                     type: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
                     success: function (response) {
-                        // Show the JSON content in the preview area
                         $('#jsonResult').text(JSON.stringify(response.json_content, null, 2)).show();
-
-                        // Show the download button
                         $('#downloadButton').attr('href', response.download_url).show();
+                    },
+                    error: function (error) {
+                        alert('An error occurred while processing the file.');
+                        console.error(error);
+                    }
+                });
+            });
+
+            // Handle JSON to Excel conversion
+            $('#jsonForm').on('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                $('#jsonResult').hide();
+                $('#downloadButton').hide();
+                $('#downloadExcelButton').hide();
+                $('#previewTableWrapper').hide();
+
+                $.ajax({
+                    url: '/convert_json_to_excel',  // Change this to your actual endpoint for JSON to Excel conversion
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        const tableBody = $('#previewTable tbody');
+                        tableBody.empty();
+                        response.table_data.forEach(row => {
+                            const tr = `<tr>
+                                <td>${row.cid}</td>
+                                <td>${row.ee_id}</td>
+                                <td>${row.case_id}</td>
+                                <td>${row.garnishment_type}</td>
+                                <td>${row.student_loan_withhold_amt || ''}</td>
+                                <td>${row.child_support_withhold_amt || ''}</td>
+                                <td>${row.arrear_amount || ''}</td>
+                                <td>${row.federal_tax_withhold_amt || ''}</td>
+                            </tr>`;
+                            tableBody.append(tr);
+                        });
+
+                        $('#previewTableWrapper').show();
+                        $('#downloadExcelButton').attr('href', response.download_url).show();
                     },
                     error: function (error) {
                         alert('An error occurred while processing the file.');
